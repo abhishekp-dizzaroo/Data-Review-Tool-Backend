@@ -3,9 +3,13 @@ from pydantic import BaseModel
 from typing import List
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.services.sql_query_generation_llm import generate_sql, generate_sql_query_by_gemini, generate_sql_query_by_openai
+from app.services.sql_query_generation_llm import generate_sql_query_by_sqlCoder, generate_sql_query_by_gemini, generate_sql_query_by_openai
+from app.rag.generate_sql_query_by_rag import generate_sql_query_by_rag
 from app.services.execute_query import execute_query
 from app.services.gemini_ai import generate_response
+from app.langchain.generate_and_execute_sql_query_by_langchain import generate_and_execute_sql_query_by_langchain
+from app.langchain.agent import generate_sql_query_and_execute_by_agent
+
 
 
 app = FastAPI()
@@ -25,21 +29,41 @@ async def root():
 
 class PromptRequest(BaseModel):
     prompt: str
+    model: str
 
 @app.post("/query", tags=["Query"])
 async def handle_query(request: PromptRequest):
     prompt = request.prompt
+    model = request.model
     print("PROMPT", prompt)
+    print("MODEL", model)
 
-    # sql_query = generate_sql(prompt) 
-    # sql_query = await generate_sql_query_by_gemini(prompt)
-    sql_query = await generate_sql_query_by_openai(prompt)
-    print("SQL QUERY", sql_query)
+    if model == "sqlCoder":
+        sql_query = await generate_sql_query_by_sqlCoder(prompt)
+        result = execute_query(sql_query)
+    elif model == "gemini":
+        sql_query = await generate_sql_query_by_gemini(prompt)
+        result = execute_query(sql_query)
+    elif model == "openAI":
+        sql_query = await generate_sql_query_by_openai(prompt)
+        result = execute_query(sql_query)
+    elif model == "langchain":
+        result = generate_and_execute_sql_query_by_langchain(prompt)
     
-    result = execute_query(sql_query)
+    elif model == "agent":
+        result = generate_sql_query_and_execute_by_agent(prompt)
+    else:
+        sql_query = generate_sql_query_by_rag(prompt)
+        result = execute_query(sql_query)
+    
     print("RESULT", result)
-
     return {"data": result}
+
+
+
+
+
+
 
 # app.include_router(health.router, prefix="/api/v1/health", tags=["Health"])
 # app.include_router(query.router, prefix="/api/v1/query", tags=["Query"])

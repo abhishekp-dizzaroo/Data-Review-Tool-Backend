@@ -1,0 +1,126 @@
+# Clinical Trial Database Schema Metadata for PostgreSQL
+
+## Table: subjects
+    Purpose:
+    Contains demographic and enrollment information for each study participant (subject).
+    Primary Key(s):
+    - subject_id (INT): unique subject identifier.
+    Foreign Keys:
+    - None (no external references).
+    Columns:
+    - subject_id (INT): unique subject identifier (Primary Key).
+    - site_id (VARCHAR(10)): code of clinical site where the subject is enrolled (e.g. 'US-001', 'IN-003').
+    - arm (VARCHAR(45)): treatment group assignment, values include 'Standard of Care' or 'Drug X'.
+    - dob (DATE): date of birth of the subject (YYYY-MM-DD).
+    - gender (CHAR(1)): subject gender, values 'M' or 'F'.
+    - enroll_date (DATE): date the subject was enrolled in the study (YYYY-MM-DD).
+    Constraints:
+    - subject_id is unique and not null (Primary Key).
+    - All fields may contain NULL values except subject_id; gender in {'M','F'}; arm typically in {'Standard of Care','Drug X'}.
+    Sample Data:
+    - (1001, 'IN-003', 'Standard of Care', '1987-10-11', 'F', '2024-01-28')
+    - (1008, 'US-002', 'Drug X', '1982-07-01', 'F', '2024-03-11')
+    - (1009, 'US-001', 'Drug X', '1989-08-22', 'M', '2024-03-05')
+
+## Table: aes
+    Purpose:
+    Records adverse events (AEs) experienced by subjects during the study, including event type, severity, dates, and relation to treatment.
+    Primary Key(s):
+    - ae_id (SERIAL): auto-incrementing unique identifier for each adverse event record.
+    Foreign Keys:
+    - subject_id references subjects(subject_id).
+    Columns:
+    - ae_id (SERIAL): unique identifier for each adverse event (Primary Key).
+    - subject_id (INT): unique subject identifier (Foreign Key to subjects).
+    - ae_term (VARCHAR(255)): description of the adverse event (e.g. 'Fatigue', 'Nausea', 'Rash', 'Neutropenia', 'Vomiting').
+    - severity (VARCHAR(45)): severity of the event, values include 'Mild', 'Moderate', 'Severe', 'Life-threatening'.
+    - start_date (DATE): date the adverse event started (YYYY-MM-DD).
+    - end_date (DATE): date the adverse event ended or resolved (YYYY-MM-DD). NULL if ongoing.
+    - related (BOOLEAN): indicator if AE is related to treatment; TRUE = related, FALSE = not related.
+    Constraints:
+    - Foreign key constraint ensures subject_id exists in subjects table.
+    - Index created on subject_id for faster joins.
+    Sample Data:
+    - (1, 1001, 'Neutropenia', 'Mild', '2024-02-12', '2024-02-16', TRUE)
+    - (2, 1004, 'Rash', 'Severe', '2024-02-23', '2024-03-01', TRUE)
+    - (3, 1006, 'Nausea', 'Moderate', '2024-02-11', '2024-02-20', FALSE)
+
+## Table: labs
+    Purpose:
+    Stores laboratory test results for subjects at various visits, including test name, measured value, and reference range.
+    Primary Key(s):
+    - lab_id (SERIAL): auto-incrementing unique identifier for each lab result.
+    Foreign Keys:
+    - subject_id references subjects(subject_id).
+    Columns:
+    - lab_id (SERIAL): unique identifier for each lab result (Primary Key).
+    - subject_id (INT): unique subject identifier (Foreign Key to subjects).
+    - visit (VARCHAR(45)): visit identifier during treatment, e.g. 'Baseline', 'Week 1', 'Cycle 1 Day 1', 'Cycle 4 Day 15'.
+    - lab_test (VARCHAR(45)): name of laboratory test, values include 'ALT', 'AST', 'WBC', 'Hemoglobin', 'CA 15-3'.
+    - value (FLOAT): numeric result of the laboratory test.
+    - units (VARCHAR(45)): measurement units for the test, values include 'U/L' or 'g/dL'.
+    - normal_range (VARCHAR(45)): normal reference range for the test value (e.g. '0-40' for ALT/AST/WBC/CA 15-3; '12-16' for Hemoglobin).
+    Constraints:
+    - Foreign key constraint ensures subject_id exists in subjects table.
+    - Index created on subject_id for faster joins.
+    Sample Data:
+    - (1, 1001, 'Cycle 4 Day 15', 'ALT', 11.75, 'U/L', '0-40')
+    - (2, 1002, 'Cycle 3 Day 15', 'Hemoglobin', 14.86, 'g/dL', '12-16')
+    - (3, 1003, 'Cycle 1 Day 15', 'CA 15-3', 5.22, 'U/L', '0-40')
+
+## Table: tumor_response
+    Purpose:
+    Contains tumor response evaluations for subjects at scheduled assessment visits, capturing response category and assessor.
+    Primary Key(s):
+    - response_id (SERIAL): auto-incrementing unique identifier for each response assessment.
+    Foreign Keys:
+    - subject_id references subjects(subject_id).
+    Columns:
+    - response_id (SERIAL): unique identifier for each response assessment (Primary Key).
+    - subject_id (INT): unique subject identifier (Foreign Key to subjects).
+    - visit (VARCHAR(45)): scheduled visit identifier, values include 'Week 6', 'Week 12', 'Week 18'.
+    - response (VARCHAR(10)): tumor response outcome at visit, values include 'PD' (progressive disease), 'CR' (complete response), 'SD' (stable disease), 'PR' (partial response), 'NE' (not evaluable).
+    - assessed_by (VARCHAR(45)): who assessed the response, values 'Investigator' or 'Independent'.
+    Constraints:
+    - Foreign key constraint ensures subject_id exists in subjects table.
+    - Index created on subject_id for faster joins.
+    Sample Data:
+    - (1, 1001, 'Week 6', 'PD', 'Investigator')
+    - (2, 1002, 'Week 12', 'PR', 'Independent')
+    - (3, 1003, 'Week 18', 'CR', 'Independent')
+
+## PostgreSQL Implementation Notes:
+- Database uses PostgreSQL syntax and data types
+- SERIAL type is used for auto-incrementing primary keys
+- Boolean values are represented as TRUE/FALSE (not 1/0)
+- Text comparisons are case-sensitive by default (use ILIKE for case-insensitive)
+- Date format follows ISO standard: 'YYYY-MM-DD'
+- Indexing is implemented on foreign keys for query optimization
+- NULL values are allowed in most fields except primary keys
+
+## Common Relationships:
+- One subject can have multiple adverse events (1:Many relationship between subjects and aes)
+- One subject can have multiple lab results (1:Many relationship between subjects and labs)
+- One subject can have multiple tumor response assessments (1:Many relationship between subjects and tumor_response)
+
+## Important Join Conditions:
+- subjects.subject_id = aes.subject_id
+- subjects.subject_id = labs.subject_id
+- subjects.subject_id = tumor_response.subject_id
+
+## PostgreSQL-Specific Query Considerations:
+- Use double quotes for identifiers only when necessary (e.g., mixed case or reserved words)
+- Use single quotes for string literals
+- Date literals should be formatted as 'YYYY-MM-DD'
+- For text pattern matching, use LIKE or ILIKE (case insensitive)
+- For advanced date operations, use PostgreSQL's date functions (e.g., AGE(), EXTRACT())
+- For aggregations, consider using GROUP BY with HAVING clauses
+- PostgreSQL supports DISTINCT ON for getting unique rows based on specific columns
+- When ordering results, NULL values appear last by default in ascending order
+
+## Response Code Meanings:
+- CR: Complete Response (complete disappearance of all target lesions)
+- PR: Partial Response (at least 30% decrease in the sum of diameters of target lesions)
+- SD: Stable Disease (neither sufficient shrinkage to qualify for PR nor sufficient increase to qualify for PD)
+- PD: Progressive Disease (at least 20% increase in the sum of diameters of target lesions)
+- NE: Not Evaluable (assessment could not be performed)

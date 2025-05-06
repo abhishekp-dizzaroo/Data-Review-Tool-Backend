@@ -8,7 +8,7 @@ These natural language queries can be used to test SQL generation models against
 
 2. List all female subjects with their enrollment dates.
 
-3. How many subjects are enrolled at each clinical site?
+3. How many subjects are enroll at each clinical site?
 
 4. What is the average age of subjects in each treatment arm?
 
