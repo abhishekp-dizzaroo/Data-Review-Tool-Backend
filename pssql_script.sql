@@ -1,3 +1,6 @@
+CREATE DATABASE clinical_study_db;
+
+
 CREATE TABLE IF NOT EXISTS subjects (
   subject_id INT NOT NULL,           -- Unique identifier for each subject
   site_id VARCHAR(10) NULL,          -- Clinical site identifier

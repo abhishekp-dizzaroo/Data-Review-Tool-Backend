@@ -2,6 +2,8 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+load_dotenv()
 
 from app.services.sql_query_generation_llm import generate_sql_query_by_sqlCoder, generate_sql_query_by_gemini, generate_sql_query_by_openai
 from app.rag.generate_sql_query_by_rag import generate_sql_query_by_rag
@@ -9,6 +11,10 @@ from app.services.execute_query import execute_query
 from app.services.gemini_ai import generate_response
 from app.langchain.generate_and_execute_sql_query_by_langchain import generate_and_execute_sql_query_by_langchain
 from app.langchain.agent import generate_sql_query_and_execute_by_agent
+
+from app.routes import user
+
+from app.db.mongo_db_connection import connect_to_mongodb, close_mongodb_connection
 
 
 
@@ -21,6 +27,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Setup database connection events
+@app.on_event("startup")
+async def startup_db_client():
+    await connect_to_mongodb()
+
+@app.on_event("shutdown")
+async def shutdown_db_client():
+    await close_mongodb_connection()
 
 
 @app.get("/")   
@@ -61,12 +77,7 @@ async def handle_query(request: PromptRequest):
 
 
 
-
-
-
-
-# app.include_router(health.router, prefix="/api/v1/health", tags=["Health"])
-# app.include_router(query.router, prefix="/api/v1/query", tags=["Query"])
+app.include_router(user.router, prefix="/user", tags=["User"])
 
 
 # print(execute_query("""SELECT "Arm", COUNT(*) as subject_count FROM subjects GROUP BY "Arm"; """))

@@ -296,7 +296,7 @@ async def generate_sql_query_by_gemini(prompt):
 
     try:
         response = gemini_client.models.generate_content(
-            model="models/gemini-1.5-pro", 
+            model="models/gemini-2.5-flash-preview-04-17", 
             contents=prompt,
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM_INTRUCTION,
